@@ -1,0 +1,213 @@
+<html>
+<head>
+<title>Cincomancia</title>
+<style>
+
+html, body { overflow: hidden; background-color: #d4d0c8 }
+table { display: inline }
+.i-full { width: 66px; height: 66px }
+
+</style>
+</head>
+<body>
+<div id="main" style="text-align:center"/>
+<span id="msg"/>
+<span id="issues" style="display:none">Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></span>
+<script type="text/javascript">
+
+var FX = [
+  {name: 'Instante'}, // 0
+  {name: 'Morte de Galo'},
+  {name: 'Morte de Sapo'},
+  {name: 'Morte de Lagarto'},
+  {name: 'O Fogo'},
+
+  {name: 'Dourado'},
+  {name: 'O Espelho'},
+  {name: 'Mascara'},
+  {name: 'Coquetel de Camarao'},
+  {name: 'Detritos'},
+
+  {name: 'Raio Curto'}, // 10
+  {name: 'Impar e Par'},
+  {name: 'O Terremoto'},
+  {name: 'Sangue'},
+  {name: 'Os Espinhos'},
+
+  {name: 'Identificar'},
+  {name: 'Golias'},
+  {name: 'Alvo Preciso'},
+  {name: 'Acabar'},
+  {name: 'Explosao'},
+
+  {name: 'Esquecer'}, // 20
+  {name: 'Poupanca'},
+  {name: 'Adicional'},
+  {name: 'Senha'},
+  {name: 'Ataque'},
+
+  {name: 'Caro'},
+  {name: 'Esgotar'},
+  {name: 'Dormir'},
+  {name: 'O Toxico'},
+  {name: 'Proteger'},
+
+  {name: 'Duplicar'}, // 30
+  {name: 'Polimorfo'},
+  {name: 'Urdidura do Tempo'},
+  {name: 'Teleporte Outro'},
+  {name: 'Teleporte'},
+
+  {name: 'Camarao Novo'},
+  {name: 'O Pilar'},
+  {name: 'Tesouro Escondido'},
+  {name: 'Tesouro Perdido'},
+  {name: 'Colecao'},
+
+  {name: 'Reflexao'}, // 40
+  {name: 'Penetracao'},
+  {name: 'Envolver'},
+  {name: 'A Energia'},
+  {name: 'A Saida'},
+
+  {name: 'Construir'},
+  {name: 'Demolicao'},
+  {name: 'Raiz Esquerda'},
+  {name: 'Curar da Terra'},
+  {name: 'Braco Direito Forte'}
+];
+
+var ban = [];
+
+for (var i = 0; i < 50; i++) {
+  var x = FX[i];
+  window[x.name.replace(/ \S/g, function(s){return s.charAt(1).toUpperCase();})] = x;
+  x.id = i;
+  x.x = i % 5;
+  x.y = Math.floor(i / 5);
+  x.max = 2;
+  ban.push([]);
+  for (var j = 0; j < 50; j++) {
+    ban[i].push(i === j);
+  }
+}
+
+Ataque.max = 3;
+Identificar.max = 1;
+OsEspinhos.max = 1;
+ASaida.max = 1;
+OTerremoto.max = 1;
+Esquecer.max = 1;
+Esgotar.max = 1;
+MorteDeGalo.max = 1;
+UrdiduraDoTempo.max = 1;
+Senha.max = 1;
+Duplicar.max = 1;
+
+function ex(x, y) {
+  var n;
+  var i;
+  if (Array.isArray(x)) {
+    n = x.length;
+    for (i = 0; i < n; i++) {
+      ex(x[i], y);
+    }
+    return;
+  }
+  if (Array.isArray(y)) {
+    n = y.length;
+    for (i = 0; i < n; i++) {
+      ex(x, y[i]);
+    }
+    return;
+  }
+  ban[x.id][y.id] = true;
+}
+
+function mutex(x, y) {
+  var n;
+  var i;
+  if (!y) {
+    n = x.length;
+    var m = n - 1;
+    for (i = 0; i < m; i++) {
+      for (var j = i + 1; j < n; j++) {
+        mutex(x[i], x[j]);
+      }
+    }
+    return;
+  }
+  if (Array.isArray(x)) {
+    n = x.length;
+    for (i = 0; i < n; i++) {
+      mutex(x[i], y);
+    }
+    return;
+  }
+  if (Array.isArray(y)) {
+    n = y.length;
+    for (i = 0; i < n; i++) {
+      mutex(x, y[i]);
+    }
+    return;
+  }
+  ex(x, y);
+  ex(y, x);
+}
+
+var WARP = [TeleporteOutro, UrdiduraDoTempo];
+var TESOURO = [TesouroPerdido, TesouroEscondido];
+
+mutex(WARP);
+mutex(Polimorfo, [WARP, Duplicar]);
+mutex(TESOURO);
+mutex([AEnergia, Duplicar, TESOURO, OPilar, Dourado]);
+mutex(Teleporte, [Explosao, TESOURO, OPilar, CamaraoNovo]);
+mutex(Explosao, [OsEspinhos, Caro]);
+mutex(CamaraoNovo, CoquetelDeCamarao);
+mutex(Golias, [CurarDaTerra, CoquetelDeCamarao]);
+mutex([Ataque, Senha], [CoquetelDeCamarao, Mascara, Golias]);
+mutex(Ataque, Acabar);
+mutex(Mascara, Dormir);
+mutex(ImparEPar, RaioCurto);
+mutex(Reflexao, [Penetracao, Envolver]);
+
+var MORTE = [MorteDeGalo, MorteDeSapo, MorteDeLagarto];
+var AGGRO = [MORTE, CoquetelDeCamarao, ImparEPar, OTerremoto, Sangue, Golias, AlvoPreciso, Acabar, Senha, Ataque];
+var DEBUFF = [Esgotar, Dormir, OToxico];
+var CONTROL = [Caro, DEBUFF, Duplicar, Polimorfo, WARP];
+
+ex(CONTROL, AGGRO);
+ex(Acabar, Senha);
+ex(Senha, Ataque);
+ex([Senha, Ataque], MORTE);
+ex([Senha, Ataque, Mascara], [ImparEPar, Sangue, AlvoPreciso]);
+ex([ImparEPar, Sangue, AlvoPreciso], CoquetelDeCamarao);
+ex([AGGRO, Caro, Polimorfo, WARP], OEspelho);
+ex([Caro, Esgotar, TESOURO], Polimorfo);
+ex([Caro, OToxico, Polimorfo], Mascara);
+ex(DEBUFF, Caro);
+ex([Duplicar, WARP], [Mascara, Caro, DEBUFF]);
+ex([OEspelho, WARP, CamaraoNovo, Colecao], Duplicar);
+ex([OFogo, OsEspinhos, TESOURO], WARP);
+ex(Explosao, TeleporteOutro);
+ex(CamaraoNovo, Explosao);
+ex(Colecao, Golias);
+ex([Polimorfo, WARP, TESOURO, OPilar, Dourado], Colecao);
+ex(Demolicao, [OPilar, Construir]);
+ex(Identificar, Esquecer);
+ex(Instante, Adicional);
+
+var myStr = '';
+for (var i = 0; i < 50; i++) {
+  for (var j = 0; j < 50; j++) {
+    myStr += ban[i][j] ? 'X,' : '.,';
+  }
+  myStr += "\n";
+}
+console.log(myStr);
+
+</script>
+</body>
+</html>
+
