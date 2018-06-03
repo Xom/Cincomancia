@@ -1,18 +1,24 @@
-<html>
-<head>
-<title>Cincomancia</title>
-<style>
+<html><head><title>Cincomancia</title><style>
 
-html, body { overflow: hidden; background-color: #d4d0c8 }
-table { display: inline }
-.i-full { width: 66px; height: 66px }
+html { transform-origin: 0 0; }
+body { background-color: #d4d0c8 }
+html, body, div { overflow: hidden }
+div, img { position: absolute }
+.boxOuter, .boxFull { width: 66px; height: 66px }
+.boxFull { left: 0; top: 0; z-index: 1 }
+.boxLeft { left: 0; bottom: 0; width: 42px; height: 24px }
+.boxRight { right: 0; bottom: 0; width: 24px; height: 24px; z-index: 2 }
+.boxTop { left: 0; top: 0; width: 66px; height: 42px }
+#msgOuter { top: 684px; left: 0; width: 2046px; text-align: center; font-size: 28px; } /* TODO display: none */
+#issues { font-style: italic }
 
-</style>
-</head>
-<body>
-<div id="main" style="text-align:center"/>
-<span id="msg"/>
-<span id="issues" style="display:none">Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></span>
+</style></head><body>
+
+<div id="msgOuter">
+<span id="msg"/>Impar e Par before Coquetel de Camarao is unheard of.
+<span id="issues">&nbsp;Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></div>
+</div>
+
 <script type="text/javascript">
 
 var FX = [
@@ -22,10 +28,10 @@ var FX = [
   {name: 'Morte de Lagarto'},
   {name: 'O Fogo'},
 
-  {name: 'Dourado'},
+  {name: 'Proteger'},
+  {name: 'Coquetel de Camarao'},
   {name: 'O Espelho'},
   {name: 'Mascara'},
-  {name: 'Coquetel de Camarao'},
   {name: 'Detritos'},
 
   {name: 'Raio Curto'}, // 10
@@ -35,22 +41,22 @@ var FX = [
   {name: 'Os Espinhos'},
 
   {name: 'Identificar'},
-  {name: 'Golias'},
   {name: 'Alvo Preciso'},
+  {name: 'Golias'},
   {name: 'Acabar'},
   {name: 'Explosao'},
 
   {name: 'Esquecer'}, // 20
   {name: 'Poupanca'},
-  {name: 'Adicional'},
   {name: 'Senha'},
+  {name: 'Adicional'},
   {name: 'Ataque'},
 
+  {name: 'Camarao Novo'},
   {name: 'Caro'},
   {name: 'Esgotar'},
   {name: 'Dormir'},
   {name: 'O Toxico'},
-  {name: 'Proteger'},
 
   {name: 'Duplicar'}, // 30
   {name: 'Polimorfo'},
@@ -58,7 +64,7 @@ var FX = [
   {name: 'Teleporte Outro'},
   {name: 'Teleporte'},
 
-  {name: 'Camarao Novo'},
+  {name: 'Dourado'},
   {name: 'O Pilar'},
   {name: 'Tesouro Escondido'},
   {name: 'Tesouro Perdido'},
@@ -198,16 +204,111 @@ ex(Demolicao, [OPilar, Construir]);
 ex(Identificar, Esquecer);
 ex(Instante, Adicional);
 
-var myStr = '';
-for (var i = 0; i < 50; i++) {
-  for (var j = 0; j < 50; j++) {
-    myStr += ban[i][j] ? 'X,' : '.,';
-  }
-  myStr += "\n";
-}
-console.log(myStr);
+var CLEAN = 0;
+var MARK = 1;
+var RED = 2; // +position = 2~7
+var FORGET = 8; // +position = 8~13
+var EXCL = 14;
+var ONE_CHANCE = 15;
+var FORGET_CHANCE = 16;
+var SEL = 17;
+var RED_SEL = 18;
+var FORGET_SEL = 19;
 
-</script>
-</body>
-</html>
+var COLOR = ['#fff', '#38c',
+  '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
+  '#faa', '#faa', '#faa', '#faa', '#faa', '#faa',
+  '#33f', '#abf', '#baf', '#ff0', '#fc0', '#ff0'];
+
+function newState() {
+  var cells = [];
+  var slots = [];
+  for (var i = 0; i < 5; i++) {
+    var a = [];
+    var j;
+    for (j = 0; j < 50; j++) {
+      a.push(CLEAN);
+    }
+    cells.push(a);
+    a = [];
+    for (j = 0; j < 5; j++) {
+      a.push([CLEAN, -1]);
+    }
+    slots.push(a);
+  }
+  return { cells: cells, slots: slots };
+}
+
+var timeline = [];
+var sel = [-1, -1, -1, -1, -1];
+var state = newState();
+
+function getImg(x) {
+  return 'url(cincomancia.png) -' + (x.x * 66) + 'px -' + (x.y * 66) + 'px';
+}
+
+function getNumero(n) {
+  return 'url(cinconumeros.png) 0 -' + (n * 24) + 'px';
+}
+
+var cells = [];
+var slots = [];
+
+function cellClicked(w, i, numero) {
+}
+
+function slotClicked(w, i) {
+}
+
+for (var i = 0; i < 5; i++) {
+  var a = [];
+  var j;
+  for (j = 0; j < 50; j++) {
+    var cell = {};
+    cell.outer = document.createElement('div');
+    cell.outer.className = 'boxOuter';
+    cell.outer.style.top = '' + (24 + (FX[j].y * 66)) + 'px';
+    cell.outer.style.left = '' + (66 + (i * 396) + (FX[j].x * 66)) + 'px';
+    cell.outer.style.backgroundColor = COLOR[state.cells[i][j]];
+    cell.img = document.createElement('img');
+    cell.img.className = 'boxFull';
+    cell.img.src = 'cinconada.png';
+    cell.img.style.background = getImg(FX[j]);
+    cell.right = document.createElement('img');
+    cell.right.className = 'boxRight';
+    cell.right.src = 'cinconada.png';
+    cell.right.onclick = cellClicked.bind(null, i, j, true);
+    cell.left = document.createElement('div');
+    cell.left.className = 'boxLeft';
+    cell.right.onclick = cellClicked.bind(null, i, j, false);
+    cell.top = document.createElement('div');
+    cell.top.className = 'boxTop';
+    cell.right.onclick = cellClicked.bind(null, i, j, false);
+    cell.outer.appendChild(cell.img);
+    cell.outer.appendChild(cell.right);
+    cell.outer.appendChild(cell.left);
+    cell.outer.appendChild(cell.top);
+    document.body.appendChild(cell.outer);
+  }
+  cells.push(a);
+  a = [];
+  for (j = 0; j < 5; j++) {
+    var slot = {};
+    slot.outer = document.createElement('div');
+    slot.outer.className = 'boxOuter';
+    slot.outer.style.top = '726px';
+    slot.outer.style.left = '' + (66 + (i * 396) + (j * 66)) + 'px';
+    slot.outer.style.backgroundColor = COLOR[state.slots[i][j][0]];
+    slot.outer.onclick = slotClicked.bind(null, i, j);
+    slot.img = document.createElement('img');
+    slot.img.src = 'cinconada.png';
+    slot.img.className = 'boxFull';
+    slot.outer.appendChild(slot.img);
+    document.body.appendChild(slot.outer);
+    a.push(slot);
+  }
+  slots.push(a);
+}
+
+</script></body></html>
 
