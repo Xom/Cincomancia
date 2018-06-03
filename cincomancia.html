@@ -15,13 +15,13 @@ div, img { position: absolute }
 .boxFull  { width: 66px; height: 66px }
 .boxRight { width: 24px; height: 24px }
 .boxLeft  { width: 42px; height: 24px }
-.boxUpper   { width: 66px; height: 42px }
-#msgOuter { width: 2046px; top: 90px; left: 0; text-align: center; font-size: 28px; } /* TODO display: none */
+.boxUpper { width: 66px; height: 42px }
+#msgOuter { width: 2046px; top: 90px; left: 0; text-align: center; font-size: 28px }
 #issues { font-style: italic }
 
 </style></head><body>
 
-<div id="msgOuter">
+<div id="msgOuter" style="display:none">
 <span id="msgInner"></span>
 <span id="issues">&nbsp;Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></div>
 </div>
@@ -225,7 +225,7 @@ var FORG_SEL = 19;
 var COLOR = ['#fff', '#38c',
   '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
   '#83c', '#83c', '#83c', '#83c', '#83c', '#83c',
-  '#33f', '#bbf', '#caf', '#ff0', '#fc0', '#ff0'];
+  '#33f', '#bbf', '#caf', '#ff0', '#f80', '#ff0'];
 
 function newState() {
   var cells = [];
@@ -250,11 +250,11 @@ var timeline = [[]];
 var sel = null;
 var state = newState();
 
-function getImg(x) {
-  if (x === -1) {
+function getImg(i) {
+  if (i === -1) {
     return null;
   }
-  return 'url(cincomancia.png) -' + (x.x * 66) + 'px -' + (x.y * 66) + 'px';
+  return 'url(cincomancia.png) -' + (FX[i].x * 66) + 'px -' + (FX[i].y * 66) + 'px';
 }
 
 function getNum(s) {
@@ -277,8 +277,15 @@ var slots = [];
 
 function colorCell(w, i) {
   var s = state.cells[w][i];
-  cells[w][i].outer.style.backgroundColor = COLOR[s];
-  cells[w][i].right.style.background = getNumero(s);
+  var col = COLOR[s];
+  var num = getNumero(s);
+  var cell = cells[w][i];
+  if (cell.outer.style.backgroundColor !== col) {
+    cell.outer.style.backgroundColor = col;
+  }
+  if (cell.right.style.background !== num) {
+    cell.right.style.background = num;
+  }
 }
 
 function timePush(forg, w, i) {
@@ -304,7 +311,6 @@ function timePop(w, i) {
 }
 
 function cellClicked(w, i, numero) {
-  document.getElementById('msgInner').innerHTML = '' + w + ',' + i + numero;
   var s = state.cells[w][i];
   switch (s) {
     case 0:
@@ -328,19 +334,27 @@ function cellClicked(w, i, numero) {
     case 5:
     case 6:
     case 7:
-      timePush(true, w, i);
-      if (s > RED) {
-        state.slots[w][s - RED - 1] = [FORG, i];
+      if (numero) {
+        rightClicked(w, i);
+        return;
       }
+      timePush(true, w, i);
       state.cells[w][i] += FORG - RED;
       sel = null;
     break;
 
+    case 8:
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+      if (numero) {
+        rightClicked(w, i);
+        return;
+      } // else fall through
     default:
       timePop(w, i);
-      if (s > FORG && s <= FORG + 5) {
-        state.slots[w][s - FORG - 1] = [CLEAN, -1];
-      }
       state.cells[w][i] = CLEAN;
       sel = null;
   }
@@ -350,14 +364,82 @@ function cellClicked(w, i, numero) {
   }
 }
 
-function slotClicked(w, i) {
+function rightClicked(w, i) {
+  sel = (sel !== null && sel[0] === w && sel[1] === i) ? null : [w, i];
+  recalc();
+}
+
+function slotClicked(w, j) {
+  var y = state.slots[w][j];
+  if (sel === null) {
+    if (y[1] !== -1) {
+      sel = [w, y[1]];
+      recalc();
+    }
+    return;
+  }
+  if (sel[0] !== w) {
+    sel = y[1] === -1 ? null : [w, y[1]];
+  } else if (y[1] === sel[1]) {
+    sel = null;
+  } else if (y[0] === RED && state.cells[w][sel[1]] >= RED && state.cells[w][sel[1]] <= RED + 5) {
+    state.cells[w][y[1]] = state.cells[w][sel[1]];
+    state.cells[w][sel[1]] = RED + 1 + j;
+    sel = [w, y[1]];
+  } else {
+    state.cells[w][sel[1]] = ((state.cells[w][sel[1]] >= RED && state.cells[w][sel[1]] <= RED + 5) ? RED : FORG) + 1 + j;
+    sel = null;
+  }
+  recalc();
 }
 
 function recalc() {
-  for (var i = 0; i < 5; i++) {
-    for (var j = 0; j < 5; j++) {
+  var ns = newState();
+  var n = timeline.length;
+  var i;
+  var m;
+  var j;
+  var t;
+  var x;
+  var st;
+  for (i = 0; i < n; i++) {
+    t = timeline[i];
+    m = t.length;
+    if (i % 2 === 0) {
+      for (j = 0; j < m; j++) {
+        x = t[j];
+        ns.cells[x[0]][x[1]] = MARK;
+      }
+    } else {
+      for (j = 0; j < m; j++) {
+        x = t[j];
+        st = state.cells[x[0]][x[1]];
+        ns.cells[x[0]][x[1]] = st;
+        if (st > FORG) {
+          ns.slots[x[0]][st - FORG - 1] = [FORG, x[1]];
+        }
+      }
+    }
+  }
+  for (i = 0; i < 5; i++) {
+    for (j = 0; j < 50; j++) {
+      x = state.cells[i][j];
+      if (x >= RED && x <= RED + 5) {
+        ns.cells[i][j] = x;
+        if (x > RED) {
+          ns.slots[i][x - RED - 1] = [RED, j];
+        }
+      }
+    }
+  }
+  state = ns;
+  for (i = 0; i < 5; i++) {
+    for (j = 0; j < 50; j++) {
+      colorCell(i, j);
+    }
+    for (j = 0; j < 5; j++) {
       var s = state.slots[i][j];
-      var st = s[0];
+      st = s[0];
       var col;
       if (sel === null || sel[0] !== i) {
         col = COLOR[st];
@@ -365,14 +447,14 @@ function recalc() {
           col = null;
         }
       } else {
-        var t = state.cells[i][sel[1]];
+        t = state.cells[i][sel[1]];
         if (j === getNum(t) - 1) {
           col = COLOR[t];
         } else {
           col = COLOR[st === RED ? RED_SEL : SEL];
         }
       }
-      var img = getImg(s[1]);
+      var img = getImg((sel !== null && sel[0] === i && state.cells[i][sel[1]] - FORG - 1 === j) ? sel[1] : s[1]);
       var slot = slots[i][j];
       if (slot.outer.style.backgroundColor !== col) {
         slot.outer.style.backgroundColor = col;
