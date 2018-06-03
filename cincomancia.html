@@ -1,21 +1,28 @@
 <html><head><title>Cincomancia</title><style>
 
-html { transform-origin: 0 0; }
-body { background-color: #d4d0c8 }
-html, body, div { overflow: hidden }
+html { background-color: #d4d0c8; transform-origin: 0 0; transform: scale(0.5) } /* TODO dynamic scale */
+html, body, div, img { user-select: none; /* No prefix supported by Chrome and Opera */
+                   -ms-user-select: none; /* Internet Explorer/Edge */
+                  -moz-user-select: none; /* Firefox */
+                -khtml-user-select: none; /* Konqueror HTML */
+               -webkit-user-select: none; /* Safari */
+             -webkit-touch-callout: none; /* iOS Safari */
+overflow: hidden
+}
 div, img { position: absolute }
-.boxOuter, .boxFull { width: 66px; height: 66px }
-.boxFull { left: 0; top: 0; z-index: 1 }
-.boxLeft { left: 0; bottom: 0; width: 42px; height: 24px }
-.boxRight { right: 0; bottom: 0; width: 24px; height: 24px; z-index: 2 }
-.boxTop { left: 0; top: 0; width: 66px; height: 42px }
-#msgOuter { top: 684px; left: 0; width: 2046px; text-align: center; font-size: 28px; } /* TODO display: none */
+.grid { width: 330px; height: 660px; top: 132px; z-index: -1 }
+.boxOuter { width: 66px; height: 66px; z-index: -2 }
+.boxFull  { width: 66px; height: 66px }
+.boxRight { width: 24px; height: 24px }
+.boxLeft  { width: 42px; height: 24px }
+.boxUpper   { width: 66px; height: 42px }
+#msgOuter { width: 2046px; top: 90px; left: 0; text-align: center; font-size: 28px; } /* TODO display: none */
 #issues { font-style: italic }
 
 </style></head><body>
 
 <div id="msgOuter">
-<span id="msg"/>Impar e Par before Coquetel de Camarao is unheard of.
+<span id="msgInner"></span>
 <span id="issues">&nbsp;Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></div>
 </div>
 
@@ -207,18 +214,18 @@ ex(Instante, Adicional);
 var CLEAN = 0;
 var MARK = 1;
 var RED = 2; // +position = 2~7
-var FORGET = 8; // +position = 8~13
+var FORG = 8; // +position = 8~13
 var EXCL = 14;
 var ONE_CHANCE = 15;
-var FORGET_CHANCE = 16;
+var FORG_CHANCE = 16;
 var SEL = 17;
 var RED_SEL = 18;
-var FORGET_SEL = 19;
+var FORG_SEL = 19;
 
 var COLOR = ['#fff', '#38c',
   '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
-  '#faa', '#faa', '#faa', '#faa', '#faa', '#faa',
-  '#33f', '#abf', '#baf', '#ff0', '#fc0', '#ff0'];
+  '#83c', '#83c', '#83c', '#83c', '#83c', '#83c',
+  '#33f', '#bbf', '#caf', '#ff0', '#fc0', '#ff0'];
 
 function newState() {
   var cells = [];
@@ -239,72 +246,200 @@ function newState() {
   return { cells: cells, slots: slots };
 }
 
-var timeline = [];
-var sel = [-1, -1, -1, -1, -1];
+var timeline = [[]];
+var sel = null;
 var state = newState();
 
 function getImg(x) {
+  if (x === -1) {
+    return null;
+  }
   return 'url(cincomancia.png) -' + (x.x * 66) + 'px -' + (x.y * 66) + 'px';
 }
 
-function getNumero(n) {
+function getNum(s) {
+  if (s < RED || s > FORG + 5) {
+    return -1;
+  }
+  return (s - RED) % 6;
+}
+
+function getNumero(s) {
+  var n = getNum(s);
+  if (n === -1) {
+    return null;
+  }
   return 'url(cinconumeros.png) 0 -' + (n * 24) + 'px';
 }
 
 var cells = [];
 var slots = [];
 
+function colorCell(w, i) {
+  var s = state.cells[w][i];
+  cells[w][i].outer.style.backgroundColor = COLOR[s];
+  cells[w][i].right.style.background = getNumero(s);
+}
+
+function timePush(forg, w, i) {
+  if (timeline.length % 2 === (forg ? 1 : 0)) {
+    timeline.push([]);
+  }
+  timeline[timeline.length - 1].push([w, i]);
+}
+
+function timePop(w, i) {
+  for (var j = 0; j < timeline.length; j++) {
+    var bucket = timeline[j];
+    for (var k = 0; k < bucket.length; k++) {
+      while (k < bucket.length && bucket[k][0] === w && bucket[k][1] === i) {
+        bucket[k] = bucket[bucket.length - 1];
+        bucket.pop();
+      }
+    }
+  }
+  while (timeline.length > 1 && timeline[timeline.length - 1].length === 0) {
+    timeline.pop();
+  }
+}
+
 function cellClicked(w, i, numero) {
+  document.getElementById('msgInner').innerHTML = '' + w + ',' + i + numero;
+  var s = state.cells[w][i];
+  switch (s) {
+    case 0:
+    case 15:
+    case 16:
+      timePush(false, w, i);
+      state.cells[w][i] = MARK;
+      sel = null;
+    break;
+
+    case 1:
+    case 14:
+      timePop(w, i);
+      state.cells[w][i] = RED;
+      sel = [w, i];
+    break;
+
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+      timePush(true, w, i);
+      if (s > RED) {
+        state.slots[w][s - RED - 1] = [FORG, i];
+      }
+      state.cells[w][i] += FORG - RED;
+      sel = null;
+    break;
+
+    default:
+      timePop(w, i);
+      if (s > FORG && s <= FORG + 5) {
+        state.slots[w][s - FORG - 1] = [CLEAN, -1];
+      }
+      state.cells[w][i] = CLEAN;
+      sel = null;
+  }
+  colorCell(w, i);
+  if (state.cells[w][i] !== MARK) {
+    recalc();
+  }
 }
 
 function slotClicked(w, i) {
 }
 
+function recalc() {
+  for (var i = 0; i < 5; i++) {
+    for (var j = 0; j < 5; j++) {
+      var s = state.slots[i][j];
+      var st = s[0];
+      var col;
+      if (sel === null || sel[0] !== i) {
+        col = COLOR[st];
+        if (col === '#fff') {
+          col = null;
+        }
+      } else {
+        var t = state.cells[i][sel[1]];
+        if (j === getNum(t) - 1) {
+          col = COLOR[t];
+        } else {
+          col = COLOR[st === RED ? RED_SEL : SEL];
+        }
+      }
+      var img = getImg(s[1]);
+      var slot = slots[i][j];
+      if (slot.outer.style.backgroundColor !== col) {
+        slot.outer.style.backgroundColor = col;
+      }
+      if (slot.img.style.background !== img) {
+        slot.img.style.background = img;
+      }
+    }
+  }
+}
+
 for (var i = 0; i < 5; i++) {
+  var img = document.createElement('img');
+  img.src = 'cincomancia.png';
+  img.className = 'grid';
+  img.style.left = '' + (66 + (i * 396)) + 'px';
+  document.body.appendChild(img);
   var a = [];
   var j;
   for (j = 0; j < 50; j++) {
     var cell = {};
+    var upper = 132 + (FX[j].y * 66);
+    var left = 66 + (i * 396) + (FX[j].x * 66);
     cell.outer = document.createElement('div');
     cell.outer.className = 'boxOuter';
-    cell.outer.style.top = '' + (24 + (FX[j].y * 66)) + 'px';
-    cell.outer.style.left = '' + (66 + (i * 396) + (FX[j].x * 66)) + 'px';
+    cell.outer.style.top = '' + upper + 'px';
+    cell.outer.style.left = '' + left + 'px';
     cell.outer.style.backgroundColor = COLOR[state.cells[i][j]];
-    cell.img = document.createElement('img');
-    cell.img.className = 'boxFull';
-    cell.img.src = 'cinconada.png';
-    cell.img.style.background = getImg(FX[j]);
+    document.body.appendChild(cell.outer);
     cell.right = document.createElement('img');
-    cell.right.className = 'boxRight';
     cell.right.src = 'cinconada.png';
-    cell.right.onclick = cellClicked.bind(null, i, j, true);
+    cell.right.className = 'boxRight';
+    cell.right.style.top = '' + (upper + 42) + 'px';
+    cell.right.style.left = '' + (left + 42) + 'px';
+    cell.right.onmousedown = cellClicked.bind(null, i, j, true);
+    document.body.appendChild(cell.right);
     cell.left = document.createElement('div');
     cell.left.className = 'boxLeft';
-    cell.right.onclick = cellClicked.bind(null, i, j, false);
-    cell.top = document.createElement('div');
-    cell.top.className = 'boxTop';
-    cell.right.onclick = cellClicked.bind(null, i, j, false);
-    cell.outer.appendChild(cell.img);
-    cell.outer.appendChild(cell.right);
-    cell.outer.appendChild(cell.left);
-    cell.outer.appendChild(cell.top);
-    document.body.appendChild(cell.outer);
+    cell.left.style.top = '' + (upper + 42) + 'px';
+    cell.left.style.left = '' + left + 'px';
+    cell.left.onmousedown = cellClicked.bind(null, i, j, false);
+    document.body.appendChild(cell.left);
+    cell.upper = document.createElement('div');
+    cell.upper.className = 'boxUpper';
+    cell.upper.style.top = '' + upper + 'px';
+    cell.upper.style.left = '' + left + 'px';
+    cell.upper.onmousedown = cellClicked.bind(null, i, j, false);
+    document.body.appendChild(cell.upper);
+    a.push(cell);
   }
   cells.push(a);
   a = [];
   for (j = 0; j < 5; j++) {
     var slot = {};
+    var left = '' + (66 + (i * 396) + (j * 66)) + 'px';
     slot.outer = document.createElement('div');
     slot.outer.className = 'boxOuter';
-    slot.outer.style.top = '726px';
-    slot.outer.style.left = '' + (66 + (i * 396) + (j * 66)) + 'px';
-    slot.outer.style.backgroundColor = COLOR[state.slots[i][j][0]];
-    slot.outer.onclick = slotClicked.bind(null, i, j);
+    slot.outer.style.top = '24px';
+    slot.outer.style.left = left;
+    document.body.appendChild(slot.outer);
     slot.img = document.createElement('img');
     slot.img.src = 'cinconada.png';
     slot.img.className = 'boxFull';
-    slot.outer.appendChild(slot.img);
-    document.body.appendChild(slot.outer);
+    slot.img.style.top = '24px';
+    slot.img.style.left = left;
+    slot.img.onmousedown = slotClicked.bind(null, i, j);
+    document.body.appendChild(slot.img);
     a.push(slot);
   }
   slots.push(a);
