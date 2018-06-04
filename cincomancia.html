@@ -10,23 +10,14 @@ html, body, div, img { user-select: none; /* No prefix supported by Chrome and O
 overflow: hidden
 }
 div, img { position: absolute }
-.grid { width: 330px; height: 660px; top: 132px; z-index: -1 }
+.grid { width: 330px; height: 660px; top: 114px; z-index: -1 }
 .boxOuter { width: 66px; height: 66px; z-index: -2 }
 .boxFull  { width: 66px; height: 66px }
 .boxRight { width: 24px; height: 24px }
 .boxLeft  { width: 42px; height: 24px }
 .boxUpper { width: 66px; height: 42px }
-#msgOuter { width: 2046px; top: 90px; left: 0; text-align: center; font-size: 28px }
-#issues { font-style: italic }
 
-</style></head><body>
-
-<div id="msgOuter" style="display:none">
-<span id="msgInner"></span>
-<span id="issues">&nbsp;Upload counterexample screenshots at: <a href="https://github.com/Xom/Cincomancia/issues">https://github.com/Xom/Cincomancia/issues</a></div>
-</div>
-
-<script type="text/javascript">
+</style></head><body><script type="text/javascript">
 
 var FX = [
   {name: 'Instante'}, // 0
@@ -216,25 +207,24 @@ var MARK = 1;
 var RED = 2; // +position = 2~7
 var FORG = 8; // +position = 8~13
 var EXCL = 14;
-var ONE_CHANCE = 15;
+var LOW_CHANCE = 15;
 var FORG_CHANCE = 16;
 var SEL = 17;
 var RED_SEL = 18;
-var FORG_SEL = 19;
 
 var COLOR = ['#fff', '#38c',
   '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
   '#83c', '#83c', '#83c', '#83c', '#83c', '#83c',
-  '#33f', '#bbf', '#caf', '#ff0', '#f80', '#ff0'];
+  '#33f', '#bbf', '#caf', '#ff0', '#f80'];
 
-function newState() {
+function newState(arrs) {
   var cells = [];
   var slots = [];
   for (var i = 0; i < 5; i++) {
     var a = [];
     var j;
     for (j = 0; j < 50; j++) {
-      a.push(CLEAN);
+      a.push(arrs ? [CLEAN, CLEAN, CLEAN, CLEAN, CLEAN] : CLEAN);
     }
     cells.push(a);
     a = [];
@@ -246,9 +236,9 @@ function newState() {
   return { cells: cells, slots: slots };
 }
 
-var timeline = [[]];
+var timelines = [[], [], [], [], []];
 var sel = null;
-var state = newState();
+var state = newState(false);
 
 function getImg(i) {
   if (i === -1) {
@@ -288,25 +278,13 @@ function colorCell(w, i) {
   }
 }
 
-function timePush(forg, w, i) {
-  if (timeline.length % 2 === (forg ? 1 : 0)) {
-    timeline.push([]);
-  }
-  timeline[timeline.length - 1].push([w, i]);
-}
-
 function timePop(w, i) {
-  for (var j = 0; j < timeline.length; j++) {
-    var bucket = timeline[j];
-    for (var k = 0; k < bucket.length; k++) {
-      while (k < bucket.length && bucket[k][0] === w && bucket[k][1] === i) {
-        bucket[k] = bucket[bucket.length - 1];
-        bucket.pop();
-      }
+  var timeline = timelines[w];
+  for (var j = timeline.length - 1; j >= 0; j--) {
+    if (timeline[j][0] === i) {
+      timeline.splice(j, 1);
+      return;
     }
-  }
-  while (timeline.length > 1 && timeline[timeline.length - 1].length === 0) {
-    timeline.pop();
   }
 }
 
@@ -316,7 +294,7 @@ function cellClicked(w, i, numero) {
     case 0:
     case 15:
     case 16:
-      timePush(false, w, i);
+      timelines[w].push([i, false]);
       state.cells[w][i] = MARK;
       sel = null;
     break;
@@ -338,7 +316,7 @@ function cellClicked(w, i, numero) {
         rightClicked(w, i);
         return;
       }
-      timePush(true, w, i);
+      timelines[w].push([i, true]);
       state.cells[w][i] += FORG - RED;
       sel = null;
     break;
@@ -394,41 +372,189 @@ function slotClicked(w, j) {
 }
 
 function recalc() {
-  var ns = newState();
-  var n = timeline.length;
+  var ns = newState(true);
+  var count = [];
+  var orig = [];
   var i;
-  var m;
+  for (i = 0; i < 50; i++) {
+    count.push(0);
+  }
+  var a;
   var j;
+  for (i = 0; i < 5; i++) {
+    a = [];
+    for (j = 0; j < 5; j++) {
+      a.push(-1);
+    }
+    orig.push(a);
+  }
   var t;
-  var x;
+  var n;
   var st;
-  for (i = 0; i < n; i++) {
-    t = timeline[i];
-    m = t.length;
-    if (i % 2 === 0) {
-      for (j = 0; j < m; j++) {
-        x = t[j];
-        ns.cells[x[0]][x[1]] = MARK;
-      }
-    } else {
-      for (j = 0; j < m; j++) {
-        x = t[j];
-        st = state.cells[x[0]][x[1]];
-        ns.cells[x[0]][x[1]] = st;
-        if (st > FORG) {
-          ns.slots[x[0]][st - FORG - 1] = [FORG, x[1]];
+  var pos;
+  var y;
+  var x;
+  var k;
+  var l;
+  var banBefore;
+  var banAfter;
+  var w;
+  for (w = 0; w < 5; w++) {
+    t = timelines[w];
+    n = t.length;
+    for (j = 0; j < n; j++) {
+      y = t[j][0];
+      if (t[j][1]) {
+        st = state.cells[w][y];
+        if (st === FORG) {
+          count[y]++;
+          for (k = 0; k < 50; k++) {
+            if (ban[k][y] && ban[y][k] && k !== y) {
+              x = ns.cells[w][k];
+              for (l = 0; l < 5; l++) {
+                if (x[l] === MARK || x[l] === EXCL) {
+                  x[l] = FORG_CHANCE;
+                }
+              }
+            }
+          }
+        } else {
+          pos = st - FORG - 1;
+          if (orig[w][pos] === -1) {
+            orig[w][pos] = FORG;
+            count[y]++;
+          }
+          ns.slots[w][pos] = [FORG, y];
+          for (k = 0; k < 50; k++) {
+            banBefore = ban[k][y];
+            banAfter = ban[y][k];
+            if ((banBefore || banAfter) && k !== y) {
+              x = ns.cells[w][k];
+              for (l = 0; l < 5; l++) {
+                if (l < pos) {
+                  if (banBefore) {
+                    x[l] = EXCL;
+                  }
+                } else if (l > pos) {
+                  if (banAfter) {
+                    x[l] = EXCL;
+                  }
+                } else {
+                  x[l] = FORG_CHANCE;
+                }
+              }
+            }
+          }
+        }
+      } else {
+        x = ns.cells[w][y];
+        for (k = 0; k < 5; k++) {
+          if (x[k] === CLEAN || x[k] === FORG_CHANCE) {
+            x[k] = MARK;
+          }
         }
       }
     }
   }
+  var z;
+  var otherReds = [[], [], [], [], []];
   for (i = 0; i < 5; i++) {
     for (j = 0; j < 50; j++) {
       x = state.cells[i][j];
       if (x >= RED && x <= RED + 5) {
-        ns.cells[i][j] = x;
-        if (x > RED) {
-          ns.slots[i][x - RED - 1] = [RED, j];
+        if (x === RED) {
+          count[j]++;
+          otherReds[i].push(j);
+          for (k = 0; k < 50; k++) {
+            if (ban[k][j] && ban[j][k] && k !== j) {
+              z = ns.cells[i][k];
+              for (l = 0; l < 5; l++) {
+                z[l] = EXCL;
+              }
+            }
+          }
+        } else {
+          pos = x - RED - 1;
+          if (orig[i][pos] === -1) {
+            orig[i][pos] = RED;
+            count[j]++;
+          }
+          ns.slots[i][pos] = [RED, j];
+          for (k = 0; k < 50; k++) {
+            if (k !== j) {
+              z = ns.cells[i][k];
+              z[pos] = EXCL;
+              banBefore = ban[k][j];
+              banAfter = ban[j][k];
+              if (banBefore || banAfter) {
+                for (l = 0; l < 5; l++) {
+                  if (l < pos) {
+                    if (banBefore) {
+                      z[l] = EXCL;
+                    }
+                  } else if (l > pos) {
+                    if (banAfter) {
+                      z[l] = EXCL;
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
+      }
+    }
+  }
+  var cleans;
+  var marks;
+  var forgs;
+  for (w = 0; w < 5; w++) {
+    t = 0;
+    for (i = 0; i < 5; i++) {
+      if (ns.slots[w][i][0] !== RED) {
+        t++;
+      }
+    }
+    for (i = 0; i < 50; i++) {
+      st = state.cells[w][i];
+      if (st >= RED && st <= FORG + 5) {
+        ns.cells[w][i] = st;
+      } else if (t === 0) {
+        ns.cells[w][i] = EXCL;
+      } else {
+        cleans = 0;
+        marks = 0;
+        forgs = 0;
+        x = ns.cells[w][i];
+        for (j = 0; j < 5; j++) {
+          k = x[j];
+          if (k === CLEAN) {
+            cleans++;
+          } else if (k === MARK) {
+            marks++;
+          } else if (k === FORG_CHANCE) {
+            forgs++;
+          }
+        }
+        if (count[i] >= FX[i].max) {
+          cleans = 0;
+          marks = 0;
+        }
+        if (cleans === 0) {
+          if (forgs > 0) {
+            z = FORG_CHANCE;
+          } else {
+            z = marks >= t ? MARK : EXCL;
+          }
+        } else {
+          cleans += forgs;
+          if (cleans + cleans <= t) {
+            z = LOW_CHANCE;
+          } else {
+            z = CLEAN;
+          }
+        }
+        ns.cells[w][i] = z;
       }
     }
   }
@@ -442,10 +568,7 @@ function recalc() {
       st = s[0];
       var col;
       if (sel === null || sel[0] !== i) {
-        col = COLOR[st];
-        if (col === '#fff') {
-          col = null;
-        }
+        col = st === CLEAN ? null : COLOR[st];
       } else {
         t = state.cells[i][sel[1]];
         if (j === getNum(t) - 1) {
@@ -476,7 +599,7 @@ for (var i = 0; i < 5; i++) {
   var j;
   for (j = 0; j < 50; j++) {
     var cell = {};
-    var upper = 132 + (FX[j].y * 66);
+    var upper = 116 + (FX[j].y * 66);
     var left = 66 + (i * 396) + (FX[j].x * 66);
     cell.outer = document.createElement('div');
     cell.outer.className = 'boxOuter';
