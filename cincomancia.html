@@ -1,6 +1,6 @@
 <html><head><title>Cincomancia</title><style>
 
-html { background-color: #d4d0c8; transform-origin: 0 0; transform: scale(0.5) } /* TODO dynamic scale */
+html { background-color: #d4d0c8; transform-origin: 0 0 }
 html, body, div, img { user-select: none; /* No prefix supported by Chrome and Opera */
                    -ms-user-select: none; /* Internet Explorer/Edge */
                   -moz-user-select: none; /* Firefox */
@@ -18,6 +18,8 @@ div, img { position: absolute }
 .boxUpper { width: 66px; height: 42px }
 
 </style></head><body><script type="text/javascript">
+
+document.documentElement.style.transform = 'scale(' + ((window.innerWidth || document.documentElement.clientWidth || document.getElementsByTagName('body')[0].clientWidth) / 2046) + ')';
 
 var FX = [
   {name: 'Instante'}, // 0
@@ -212,9 +214,9 @@ var FORG_CHANCE = 16;
 var SEL = 17;
 var RED_SEL = 18;
 
-var COLOR = ['#fff', '#38c',
+var COLOR = ['#fff', '#36c',
   '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
-  '#83c', '#83c', '#83c', '#83c', '#83c', '#83c',
+  '#808', '#808', '#808', '#808', '#808', '#808',
   '#33f', '#bbf', '#caf', '#ff0', '#f80'];
 
 function newState(arrs) {
@@ -426,21 +428,22 @@ function recalc() {
           }
           ns.slots[w][pos] = [FORG, y];
           for (k = 0; k < 50; k++) {
-            banBefore = ban[k][y];
-            banAfter = ban[y][k];
-            if ((banBefore || banAfter) && k !== y) {
+            if (k !== y) {
               x = ns.cells[w][k];
-              for (l = 0; l < 5; l++) {
-                if (l < pos) {
-                  if (banBefore) {
-                    x[l] = EXCL;
+              x[pos] = FORG_CHANCE;
+              banBefore = ban[k][y];
+              banAfter = ban[y][k];
+              if (banBefore || banAfter) {
+                for (l = 0; l < 5; l++) {
+                  if (l < pos) {
+                    if (banBefore) {
+                      x[l] = EXCL;
+                    }
+                  } else if (l > pos) {
+                    if (banAfter) {
+                      x[l] = EXCL;
+                    }
                   }
-                } else if (l > pos) {
-                  if (banAfter) {
-                    x[l] = EXCL;
-                  }
-                } else {
-                  x[l] = FORG_CHANCE;
                 }
               }
             }
@@ -526,6 +529,9 @@ function recalc() {
         marks = 0;
         forgs = 0;
         x = ns.cells[w][i];
+        if (Adicional.id === i && x[0] !== MARK) {
+          x[0] = EXCL;
+        }
         for (j = 0; j < 5; j++) {
           k = x[j];
           if (k === CLEAN) {
@@ -599,7 +605,7 @@ for (var i = 0; i < 5; i++) {
   var j;
   for (j = 0; j < 50; j++) {
     var cell = {};
-    var upper = 116 + (FX[j].y * 66);
+    var upper = 114 + (FX[j].y * 66);
     var left = 66 + (i * 396) + (FX[j].x * 66);
     cell.outer = document.createElement('div');
     cell.outer.className = 'boxOuter';
