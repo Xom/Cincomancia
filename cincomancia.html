@@ -21,6 +21,10 @@ div, img { position: absolute }
 
 document.documentElement.style.transform = 'scale(' + ((window.innerWidth || document.documentElement.clientWidth || document.getElementsByTagName('body')[0].clientWidth) / 2046) + ')';
 
+onbeforeunload = function() {
+  return "Confirm to leave / refresh page. Data won't be saved.";
+}
+
 var FX = [
   {name: 'Instante'}, // 0
   {name: 'Morte de Galo'},
