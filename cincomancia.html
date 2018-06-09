@@ -23,7 +23,7 @@ document.documentElement.style.transform = 'scale(' + ((window.innerWidth || doc
 
 onbeforeunload = function() {
   return "Confirm to leave / refresh page. Data won't be saved.";
-}
+};
 
 var FX = [
   {name: 'Instante'}, // 0
@@ -208,20 +208,17 @@ ex(Demolicao, [OPilar, Construir]);
 ex(Identificar, Esquecer);
 ex(Instante, Adicional);
 
-var CLEAN = 0;
-var MARK = 1;
-var RED = 2; // +position = 2~7
-var FORG = 8; // +position = 8~13
-var EXCL = 14;
-var LOW_CHANCE = 15;
-var FORG_CHANCE = 16;
-var SEL = 17;
-var RED_SEL = 18;
+var CLEAN = 0; // +TINT = SEL
+var MARK  = 1; // +TINT = MARK_PART
+var RED   = 2; // +TINT = SEL_RED
+var FORG  = 3; // +TINT = FORG_PART
+var EXCL  = 4; // +TINT = EXCL_PART
+var TINT  = 5;
 
-var COLOR = ['#fff', '#36c',
-  '#f00', '#f00', '#f00', '#f00', '#f00', '#f00',
-  '#808', '#808', '#808', '#808', '#808', '#808',
-  '#33f', '#bbf', '#caf', '#ff0', '#f80'];
+var COLOR = [
+  '#fff', '#36c', '#f00', '#808', '#33f',
+  '#ff0', '#acf', '#f80', '#caf', '#bbf'
+];
 
 function newState(arrs) {
   var cells = [];
@@ -230,7 +227,7 @@ function newState(arrs) {
     var a = [];
     var j;
     for (j = 0; j < 50; j++) {
-      a.push(arrs ? [CLEAN, CLEAN, CLEAN, CLEAN, CLEAN] : CLEAN);
+      a.push(arrs ? [CLEAN, CLEAN, CLEAN, CLEAN, CLEAN, -1] : [CLEAN, -1]);
     }
     cells.push(a);
     a = [];
@@ -247,25 +244,11 @@ var sel = null;
 var state = newState(false);
 
 function getImg(i) {
-  if (i === -1) {
-    return null;
-  }
-  return 'url(cincomancia.png) -' + (FX[i].x * 66) + 'px -' + (FX[i].y * 66) + 'px';
-}
-
-function getNum(s) {
-  if (s < RED || s > FORG + 5) {
-    return -1;
-  }
-  return (s - RED) % 6;
+  return i === -1 ? null : 'url(cincomancia.png) -' + (FX[i].x * 66) + 'px -' + (FX[i].y * 66) + 'px';
 }
 
 function getNumero(s) {
-  var n = getNum(s);
-  if (n === -1) {
-    return null;
-  }
-  return 'url(cinconumeros.png) 0 -' + (n * 24) + 'px';
+  return s[1] === -1 ? null : 'url(cinconumeros.png) 0 -' + (s[1] * 24) + 'px';
 }
 
 var cells = [];
@@ -273,7 +256,7 @@ var slots = [];
 
 function colorCell(w, i) {
   var s = state.cells[w][i];
-  var col = COLOR[s];
+  var col = COLOR[s[0]];
   var num = getNumero(s);
   var cell = cells[w][i];
   if (cell.outer.style.backgroundColor !== col) {
@@ -284,94 +267,71 @@ function colorCell(w, i) {
   }
 }
 
-function timePop(w, i) {
+function timeSplice(w, i, n) {
   var timeline = timelines[w];
   for (var j = timeline.length - 1; j >= 0; j--) {
     if (timeline[j][0] === i) {
-      timeline.splice(j, 1);
-      return;
+      if (n) {
+        timeline[j][2] = n;
+      } else {
+        timeline.splice(j, 1);
+        timeSplice(w, i, n);
+        return;
+      }
     }
   }
 }
 
 function cellClicked(w, i, numero) {
   var s = state.cells[w][i];
-  switch (s) {
-    case 0:
-    case 15:
-    case 16:
-      timelines[w].push([i, false]);
-      state.cells[w][i] = MARK;
-      sel = null;
-    break;
-
-    case 1:
-    case 14:
-      timePop(w, i);
-      state.cells[w][i] = RED;
-      sel = [w, i];
-    break;
-
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
-      if (numero) {
-        rightClicked(w, i);
-        return;
-      }
-      timelines[w].push([i, true]);
-      state.cells[w][i] += FORG - RED;
-      sel = null;
-    break;
-
-    case 8:
-    case 9:
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-      if (numero) {
-        rightClicked(w, i);
-        return;
-      } // else fall through
-    default:
-      timePop(w, i);
-      state.cells[w][i] = CLEAN;
-      sel = null;
+  var s0 = s[0];
+  if (s0 !== EXCL && s[1] === -1 || s0 === MARK+TINT) {
+    timeSplice(w, i);
+    timelines[w].push([i, false, 5]);
+    state.cells[w][i] = [MARK, 5];
+    sel = [w, i];
+  } else if (numero) {
+    sel = (sel !== null && sel[0] === w && sel[1] === i) ? null : [w, i];
+    recalc();
+    return;
+  } else if (s0 === MARK || s0 === EXCL) {
+    timeSplice(w, i);
+    state.cells[w][i] = [RED, 0];
+    sel = [w, i];
+  } else if (s0 === RED) {
+    timelines[w].push([i, true]);
+    state.cells[w][i][0] = FORG;
+    sel = null;
+  } else {
+    timeSplice(w, i);
+    state.cells[w][i] = [CLEAN, -1];
+    sel = null;
   }
   colorCell(w, i);
-  if (state.cells[w][i] !== MARK) {
-    recalc();
-  }
-}
-
-function rightClicked(w, i) {
-  sel = (sel !== null && sel[0] === w && sel[1] === i) ? null : [w, i];
   recalc();
 }
 
 function slotClicked(w, j) {
   var y = state.slots[w][j];
   if (sel === null) {
-    if (y[1] !== -1) {
-      sel = [w, y[1]];
-      recalc();
+    if (y[1] === -1) {
+      return;
     }
-    return;
-  }
-  if (sel[0] !== w) {
+    sel = [w, y[1]];
+  } else if (sel[0] !== w) {
     sel = y[1] === -1 ? null : [w, y[1]];
   } else if (y[1] === sel[1]) {
     sel = null;
-  } else if (y[0] === RED && state.cells[w][sel[1]] >= RED && state.cells[w][sel[1]] <= RED + 5) {
-    state.cells[w][y[1]] = state.cells[w][sel[1]];
-    state.cells[w][sel[1]] = RED + 1 + j;
+  } else if (y[0] === RED && state.cells[w][sel[1]][0] === RED) {
+    state.cells[w][y[1]][1] = state.cells[w][sel[1]][1];
+    state.cells[w][sel[1]][1] = 1 + j;
     sel = [w, y[1]];
   } else {
-    state.cells[w][sel[1]] = ((state.cells[w][sel[1]] >= RED && state.cells[w][sel[1]] <= RED + 5) ? RED : FORG) + 1 + j;
+    if (state.cells[w][sel[1]][0] === MARK) {
+      timeSplice(w, sel[1], 1 + j);
+    } else {
+      state.cells[w][sel[1]][1] = 1 + j;
+    }
     sel = null;
   }
   recalc();
@@ -404,6 +364,7 @@ function recalc() {
   var l;
   var banBefore;
   var banAfter;
+  var last;
   var w;
   for (w = 0; w < 5; w++) {
     t = timelines[w];
@@ -412,20 +373,20 @@ function recalc() {
       y = t[j][0];
       if (t[j][1]) {
         st = state.cells[w][y];
-        if (st === FORG) {
+        if (st[1] === 0) {
           count[y]++;
           for (k = 0; k < 50; k++) {
             if (ban[k][y] && ban[y][k] && k !== y) {
               x = ns.cells[w][k];
               for (l = 0; l < 5; l++) {
                 if (x[l] === MARK || x[l] === EXCL) {
-                  x[l] = FORG_CHANCE;
+                  x[l] = FORG+TINT;
                 }
               }
             }
           }
         } else {
-          pos = st - FORG - 1;
+          pos = st[1] - 1;
           if (orig[w][pos] === -1) {
             orig[w][pos] = FORG;
             count[y]++;
@@ -434,7 +395,7 @@ function recalc() {
           for (k = 0; k < 50; k++) {
             if (k !== y) {
               x = ns.cells[w][k];
-              x[pos] = FORG_CHANCE;
+              x[pos] = FORG+TINT;
               banBefore = ban[k][y];
               banAfter = ban[y][k];
               if (banBefore || banAfter) {
@@ -455,23 +416,23 @@ function recalc() {
         }
       } else {
         x = ns.cells[w][y];
-        for (k = 0; k < 5; k++) {
-          if (x[k] === CLEAN || x[k] === FORG_CHANCE) {
+        last = t[j][2];
+        for (k = 0; k < last; k++) {
+          if (x[k] === CLEAN || x[k] === FORG+TINT) {
             x[k] = MARK;
           }
         }
+        x[5] = last;
       }
     }
   }
   var z;
-  var otherReds = [[], [], [], [], []];
   for (i = 0; i < 5; i++) {
     for (j = 0; j < 50; j++) {
       x = state.cells[i][j];
-      if (x >= RED && x <= RED + 5) {
-        if (x === RED) {
+      if (x[0] === RED) {
+        if (x[1] === 0) {
           count[j]++;
-          otherReds[i].push(j);
           for (k = 0; k < 50; k++) {
             if (ban[k][j] && ban[j][k] && k !== j) {
               z = ns.cells[i][k];
@@ -481,7 +442,7 @@ function recalc() {
             }
           }
         } else {
-          pos = x - RED - 1;
+          pos = x[1] - 1;
           if (orig[i][pos] === -1) {
             orig[i][pos] = RED;
             count[j]++;
@@ -515,6 +476,7 @@ function recalc() {
   var cleans;
   var marks;
   var forgs;
+  var o;
   for (w = 0; w < 5; w++) {
     t = 0;
     for (i = 0; i < 5; i++) {
@@ -524,16 +486,16 @@ function recalc() {
     }
     for (i = 0; i < 50; i++) {
       st = state.cells[w][i];
-      if (st >= RED && st <= FORG + 5) {
+      if (st[0] === RED || st[0] === FORG) {
         ns.cells[w][i] = st;
       } else if (t === 0) {
-        ns.cells[w][i] = EXCL;
+        ns.cells[w][i] = [EXCL, -1];
       } else {
         cleans = 0;
         marks = 0;
         forgs = 0;
         x = ns.cells[w][i];
-        if (Adicional.id === i && x[0] !== MARK) {
+        if (i === Adicional.id) {
           x[0] = EXCL;
         }
         for (j = 0; j < 5; j++) {
@@ -542,29 +504,28 @@ function recalc() {
             cleans++;
           } else if (k === MARK) {
             marks++;
-          } else if (k === FORG_CHANCE) {
+          } else if (k === FORG+TINT) {
             forgs++;
           }
         }
-        if (count[i] >= FX[i].max) {
-          cleans = 0;
-          marks = 0;
+        o = FX[i].max - count[i];
+        if (o < 0) {
+          o = 0;
         }
+        cleans *= o;
+        marks *= o;
         if (cleans === 0) {
-          if (forgs > 0) {
-            z = FORG_CHANCE;
-          } else {
-            z = marks >= t ? MARK : EXCL;
-          }
+          z = forgs === 0 ? (marks === 0 ? EXCL : MARK) : FORG+TINT;
+        } else if (marks === 0) {
+          z = (FX[i].max * forgs + cleans) * 2 > FX[i].max * t ? CLEAN : EXCL+TINT;
         } else {
-          cleans += forgs;
-          if (cleans + cleans <= t) {
-            z = LOW_CHANCE;
-          } else {
-            z = CLEAN;
-          }
+          z = MARK+TINT;
         }
-        ns.cells[w][i] = z;
+        if (z === MARK || z === MARK+TINT) {
+          ns.cells[w][i] = [z, x[5]];
+        } else {
+          ns.cells[w][i] = [z, -1];
+        }
       }
     }
   }
@@ -577,17 +538,23 @@ function recalc() {
       var s = state.slots[i][j];
       st = s[0];
       var col;
+      var img;
       if (sel === null || sel[0] !== i) {
         col = st === CLEAN ? null : COLOR[st];
       } else {
         t = state.cells[i][sel[1]];
-        if (j === getNum(t) - 1) {
-          col = COLOR[t];
+        if (j === t[1] - 1) {
+          col = COLOR[t[0]];
         } else {
-          col = COLOR[st === RED ? RED_SEL : SEL];
+          col = COLOR[st === RED ? RED+TINT : TINT];
         }
       }
-      var img = getImg((sel !== null && sel[0] === i && state.cells[i][sel[1]] - FORG - 1 === j) ? sel[1] : s[1]);
+      if (sel !== null && sel[0] === i && (t[0] === MARK || t[0] === MARK+TINT)) {
+        col = COLOR[st === RED ? RED+TINT : TINT];
+        img = getImg(s[1]);
+      } else {
+        img = getImg((sel !== null && sel[0] === i && state.cells[i][sel[1]][1] - 1 === j) ? sel[1] : s[1]);
+      }
       var slot = slots[i][j];
       if (slot.outer.style.backgroundColor !== col) {
         slot.outer.style.backgroundColor = col;
@@ -615,7 +582,7 @@ for (var i = 0; i < 5; i++) {
     cell.outer.className = 'boxOuter';
     cell.outer.style.top = '' + upper + 'px';
     cell.outer.style.left = '' + left + 'px';
-    cell.outer.style.backgroundColor = COLOR[state.cells[i][j]];
+    cell.outer.style.backgroundColor = COLOR[state.cells[i][j][0]];
     document.body.appendChild(cell.outer);
     cell.right = document.createElement('img');
     cell.right.src = 'cinconada.png';
