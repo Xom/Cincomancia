@@ -17,7 +17,11 @@ div, img { position: absolute }
 .boxLeft  { width: 42px; height: 24px }
 .boxUpper { width: 66px; height: 42px }
 
-</style></head><body><script type="text/javascript">
+</style></head><body>
+
+<div style="top:840px;left:0;width:2046px;height:100px;text-align:center"><button style="font-size:24px" id="resetButton">Reset</button></div>
+
+<script type="text/javascript">
 
 document.documentElement.style.transform = 'scale(' + ((window.innerWidth || document.documentElement.clientWidth || document.getElementsByTagName('body')[0].clientWidth) / 2046) + ')';
 
@@ -626,6 +630,15 @@ for (var i = 0; i < 5; i++) {
   }
   slots.push(a);
 }
+
+document.getElementById('resetButton').onclick = function() {
+  if (confirm('Reset everything?')) {
+    timelines = [[], [], [], [], []];
+    sel = null;
+    state = newState(false);
+    recalc();
+  }
+};
 
 </script></body></html>
 
