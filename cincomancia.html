@@ -33,7 +33,7 @@ var FX = [
   {name: 'Instante'}, // 0
   {name: 'Morte de Galo'},
   {name: 'Morte de Sapo'},
-  {name: 'Morte de Lagarto'},
+  {name: 'Morte de Largarto'},
   {name: 'O Fogo'},
 
   {name: 'Proteger'},
@@ -42,7 +42,7 @@ var FX = [
   {name: 'Mascara'},
   {name: 'Detritos'},
 
-  {name: 'Raio Curto'}, // 10
+  {name: 'Raio Courto'}, // 10
   {name: 'Impar e Par'},
   {name: 'O Terremoto'},
   {name: 'Sangue'},
@@ -52,7 +52,7 @@ var FX = [
   {name: 'Alvo Preciso'},
   {name: 'Golias'},
   {name: 'Acabar'},
-  {name: 'Explosao'},
+  {name: 'Esplosao'},
 
   {name: 'Esquecer'}, // 20
   {name: 'Poupanca'},
@@ -68,7 +68,7 @@ var FX = [
 
   {name: 'Duplicar'}, // 30
   {name: 'Polimorfo'},
-  {name: 'Urdidura do Tempo'},
+  {name: 'Urdidura de Tempo'},
   {name: 'Teleporte Outro'},
   {name: 'Teleporte'},
 
@@ -87,7 +87,7 @@ var FX = [
   {name: 'Construir'},
   {name: 'Demolicao'},
   {name: 'Raiz Esquerda'},
-  {name: 'Curar da Terra'},
+  {name: 'Curar de Terra'},
   {name: 'Braco Direito Forte'}
 ];
 
@@ -105,18 +105,6 @@ for (var i = 0; i < 50; i++) {
     ban[i].push(i === j);
   }
 }
-
-Ataque.max = 3;
-Identificar.max = 1;
-OsEspinhos.max = 1;
-ASaida.max = 1;
-OTerremoto.max = 1;
-Esquecer.max = 1;
-Esgotar.max = 1;
-MorteDeGalo.max = 1;
-UrdiduraDoTempo.max = 1;
-Senha.max = 1;
-Duplicar.max = 1;
 
 function ex(x, y) {
   var n;
@@ -138,6 +126,7 @@ function ex(x, y) {
   ban[x.id][y.id] = true;
 }
 
+// mutually exclude (y cannot appear below x, x cannot appear below y)
 function mutex(x, y) {
   var n;
   var i;
@@ -169,48 +158,204 @@ function mutex(x, y) {
   ex(y, x);
 }
 
-var WARP = [TeleporteOutro, UrdiduraDoTempo];
+var WARP = [TeleporteOutro, UrdiduraDeTempo];
 var TESOURO = [TesouroPerdido, TesouroEscondido];
 
-mutex(WARP);
-mutex(Polimorfo, [WARP, Duplicar]);
-mutex(TESOURO);
-mutex([AEnergia, Duplicar, TESOURO, OPilar, Dourado]);
-mutex(Teleporte, [Explosao, TESOURO, CamaraoNovo]);
-mutex(Explosao, OsEspinhos);
-mutex(CamaraoNovo, CoquetelDeCamarao);
-mutex(Golias, [CurarDaTerra, CoquetelDeCamarao]);
-mutex(Ataque, Mascara);
-mutex(Mascara, Dormir);
-mutex(ImparEPar, RaioCurto);
-mutex(Reflexao, [Penetracao, Envolver]);
-
-var MORTE = [MorteDeGalo, MorteDeSapo, MorteDeLagarto, CoquetelDeCamarao];
+var MORTE = [MorteDeGalo, MorteDeSapo, MorteDeLargarto, CoquetelDeCamarao];
 var AGGRO = [MORTE, ImparEPar, OTerremoto, Sangue, Golias, AlvoPreciso, Acabar, Senha, Ataque];
 var DEBUFF = [Esgotar, Dormir, OToxico];
 var CONTROL = [Caro, DEBUFF, Duplicar, Polimorfo, WARP];
 
-ex(CONTROL, AGGRO);
-ex(Acabar, Senha);
-ex(Ataque, Acabar);
-ex([Senha, Ataque], MORTE);
-ex([Senha, Ataque, Mascara], [ImparEPar, Sangue, AlvoPreciso]);
-ex([ImparEPar, Sangue, AlvoPreciso], CoquetelDeCamarao);
-ex([AGGRO, Caro, Polimorfo, WARP], OEspelho);
-ex([Caro, Esgotar, TESOURO], Polimorfo);
-ex([Caro, Polimorfo], Mascara);
-ex(DEBUFF, Caro);
-ex([Duplicar, WARP], [Mascara, Caro, DEBUFF]);
-ex([OEspelho, WARP, CamaraoNovo, Colecao], Duplicar);
-ex([OFogo, OsEspinhos, TESOURO], WARP);
-ex(Explosao, TeleporteOutro);
-ex(CamaraoNovo, Explosao);
-ex(Colecao, Golias);
-ex([Ataque, Senha], Golias)
-ex([Polimorfo, WARP, TESOURO, OPilar, Dourado], Colecao);
-ex(Demolicao, OPilar);
-ex(Identificar, Esquecer);
-ex(Instante, Adicional);
+function setJogoRules(jogo) {
+  ban = [];
+
+  for (var i = 0; i < 50; i++) {
+    var x = FX[i];
+    window[x.name.replace(/ \S/g, function(s){return s.charAt(1).toUpperCase();})] = x;
+    x.id = i;
+    x.x = i % 5;
+    x.y = Math.floor(i / 5);
+    x.max = 2;
+    ban.push([]);
+    for (var j = 0; j < 50; j++) {
+      ban[i].push(i === j);
+    }
+  }
+  
+  if (jogo < 5) {
+    ex(Ataque, [CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,OEspelho]);
+    ex(OFogo, [TeleporteOutro,UrdiduraDeTempo]);
+    ex(Esplosao, [TeleporteOutro]);
+    ex(Senha, [CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Golias,ImparEPar,AlvoPreciso,Sangue,OEspelho]);
+    ex(CoquetelDeCamarao, [OEspelho]);
+    ex(MorteDeLargarto, [OEspelho]);
+    ex(MorteDeSapo, [OEspelho]);
+    ex(MorteDeGalo, [OEspelho]);
+    ex(Acabar, [Senha,OEspelho]);
+    ex(Golias, [OEspelho]);
+    ex(ImparEPar, [CoquetelDeCamarao,OEspelho]);
+    ex(AlvoPreciso, [CoquetelDeCamarao,OEspelho,Dourado]);
+    ex(Sangue, [CoquetelDeCamarao,OEspelho,RaioCourto]);
+    ex(CamaraoNovo, [Esplosao,Duplicar]);
+    ex(BracoDireitoForte, [Dourado]);
+    ex(Teleporte, [Esplosao]);
+    ex(TeleporteOutro, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Dormir,Polimorfo,Duplicar,OToxico,OEspelho,Colecao,Dourado,Caro,OTerremoto]);
+    ex(Dormir, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Caro,OTerremoto]);
+    ex(Polimorfo, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Duplicar,OEspelho,OTerremoto]);
+    ex(Duplicar, [Ataque,Senha,MorteDeGalo,ImparEPar,OToxico,Caro]);
+    ex(OToxico, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Caro,OTerremoto]);
+    ex(UrdiduraDeTempo, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Dormir,Polimorfo,Duplicar,OToxico,OEspelho,Colecao,Caro,OTerremoto]);
+    ex(OEspelho, [Dourado]);
+    ex(Demolicao, [OPilar]);
+    ex(OsEspinhos, [TeleporteOutro,UrdiduraDeTempo]);
+    ex(Colecao, [Golias,Duplicar]);
+    ex(TesouroPerdido, [TeleporteOutro,Polimorfo,UrdiduraDeTempo,Colecao]);
+    ex(TesouroEscondido, [TeleporteOutro,Polimorfo,UrdiduraDeTempo,Colecao]);
+    ex(OPilar, [RaizEsquerda,Colecao]);
+    ex(Dourado, [Golias,RaizEsquerda,Colecao]);
+    ex(Penetracao, [Dourado]);
+    ex(Envolver, [Duplicar]);
+    ex(RaioCourto, [Golias,CamaraoNovo,Dourado]);
+    ex(Instante, [Adicional]);
+    ex(Identificar, [Esquecer]);
+    ex(Caro, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,OEspelho,OTerremoto]);
+    ex(OTerremoto, [OEspelho]);
+
+    mutex(Ataque, [Mascara,Esgotar]);
+    mutex(OFogo, [Esgotar]);
+    mutex(Detritos, [Esgotar]);
+    mutex(Esplosao, [Esgotar]);
+    mutex(Senha, [Esgotar]);
+    mutex(CoquetelDeCamarao, [Esgotar]);
+    mutex(Mascara, [Ataque,Esgotar]);
+    mutex(MorteDeLargarto, [Esgotar]);
+    mutex(MorteDeSapo, [Esgotar]);
+    mutex(MorteDeGalo, [Esgotar]);
+    mutex(Acabar, [Esgotar]);
+    mutex(Golias, [Duplicar,Esgotar]);
+    mutex(ImparEPar, [Esgotar,RaioCourto]);
+    mutex(AlvoPreciso, [Esgotar,RaioCourto]);
+    mutex(Sangue, [Esgotar]);
+    mutex(CamaraoNovo, [Teleporte,Esgotar]);
+    mutex(CurarDeTerra, [Esgotar]);
+    mutex(BracoDireitoForte, [Esgotar]);
+    mutex(AEnergia, [Duplicar,Esgotar,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
+    mutex(RaizEsquerda, [Esgotar]);
+    mutex(Teleporte, [CamaraoNovo,Esgotar]);
+    mutex(TeleporteOutro, [Esgotar,UrdiduraDeTempo]);
+    mutex(Dormir, [Esgotar]);
+    mutex(Polimorfo, [Esgotar,Caro]);
+    mutex(Duplicar, [Golias,AEnergia,Esgotar,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
+    mutex(Esgotar, [Ataque,OFogo,Detritos,Esplosao,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,CamaraoNovo,CurarDeTerra,BracoDireitoForte,AEnergia,RaizEsquerda,Teleporte,TeleporteOutro,Dormir,Polimorfo,Duplicar,OToxico,UrdiduraDeTempo,OEspelho,Adicional,Construir,Demolicao,ASaida,OsEspinhos,Poupanca,Colecao,TesouroPerdido,TesouroEscondido,OPilar,Dourado,Penetracao,Envolver,Reflexao,RaioCourto,Instante,Proteger,Identificar,Esquecer,Caro,OTerremoto]);
+    mutex(OToxico, [Esgotar]);
+    mutex(UrdiduraDeTempo, [TeleporteOutro,Esgotar]);
+    mutex(OEspelho, [Esgotar]);
+    mutex(Adicional, [Esgotar]);
+    mutex(Construir, [Esgotar]);
+    mutex(Demolicao, [Esgotar]);
+    mutex(ASaida, [Esgotar]);
+    mutex(OsEspinhos, [Esgotar]);
+    mutex(Poupanca, [Esgotar]);
+    mutex(Colecao, [Esgotar]);
+    mutex(TesouroPerdido, [AEnergia,Duplicar,Esgotar,TesouroEscondido,OPilar,Dourado]);
+    mutex(TesouroEscondido, [AEnergia,Duplicar,Esgotar,TesouroPerdido,OPilar,Dourado]);
+    mutex(OPilar, [AEnergia,Duplicar,Esgotar,TesouroPerdido,TesouroEscondido,Dourado]);
+    mutex(Dourado, [AEnergia,Duplicar,Esgotar,TesouroPerdido,TesouroEscondido,OPilar]);
+    mutex(Penetracao, [Esgotar,Reflexao]);
+    mutex(Envolver, [Esgotar,Reflexao]);
+    mutex(Reflexao, [Esgotar,Penetracao,Envolver]);
+    mutex(RaioCourto, [ImparEPar,AlvoPreciso,Esgotar]);
+    mutex(Instante, [Esgotar]);
+    mutex(Proteger, [Esgotar]);
+    mutex(Identificar, [Esgotar]);
+    mutex(Esquecer, [Esgotar]);
+    mutex(Caro, [Polimorfo,Esgotar]);
+    mutex(OTerremoto, [Esgotar]);
+    
+    cellClicked(0, 27, 0);
+    cellClicked(1, 27, 0);
+    cellClicked(2, 27, 0);
+    cellClicked(3, 27, 0);
+    cellClicked(4, 27, 0);
+  } else {
+    ex(Ataque, [CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Esgotar,OEspelho]);
+    ex(OFogo, [TeleporteOutro,UrdiduraDeTempo]);
+    ex(Esplosao, [TeleporteOutro]);
+    ex(Senha, [CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Golias,ImparEPar,AlvoPreciso,Sangue,Esgotar,OEspelho]);
+    ex(CoquetelDeCamarao, [Esgotar,OEspelho]);
+    ex(MorteDeLargarto, [Esgotar,OEspelho]);
+    ex(MorteDeSapo, [Esgotar,OEspelho]);
+    ex(MorteDeGalo, [Esgotar,OEspelho,OPilar]);
+    ex(Acabar, [Senha,Esgotar]);
+    ex(Golias, [OEspelho]);
+    ex(ImparEPar, [CoquetelDeCamarao,Esgotar,OEspelho]);
+    ex(AlvoPreciso, [CoquetelDeCamarao,Esgotar,OEspelho,Dourado]);
+    ex(Sangue, [CoquetelDeCamarao,Esgotar,OEspelho]);
+    ex(CamaraoNovo, [Esplosao,Duplicar,Dourado]);
+    ex(RaizEsquerda, [RaioCourto]);
+    ex(Teleporte, [Esplosao]);
+    ex(TeleporteOutro, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Dormir,Polimorfo,Duplicar,Esgotar,OToxico,OEspelho,Colecao,Caro,OTerremoto]);
+    ex(Dormir, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Caro,OTerremoto]);
+    ex(Polimorfo, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,ImparEPar,AlvoPreciso,Sangue,Colecao,OTerremoto]);
+    ex(Duplicar, [Senha,MorteDeGalo,RaizEsquerda,Esgotar,OToxico]);
+    ex(Esgotar, [Polimorfo]);
+    ex(OToxico, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Caro,OTerremoto]);
+    ex(UrdiduraDeTempo, [Ataque,Senha,CoquetelDeCamarao,Mascara,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Dormir,Polimorfo,Duplicar,Esgotar,OToxico,OEspelho,Colecao,Caro,OTerremoto]);
+    ex(Demolicao, [OPilar,RaioCourto]);
+    ex(OsEspinhos, [TeleporteOutro,UrdiduraDeTempo]);
+    ex(Poupanca, [Senha,MorteDeGalo,RaizEsquerda,Esgotar]);
+    ex(Colecao, [Duplicar]);
+    ex(TesouroPerdido, [TeleporteOutro,Polimorfo,Esgotar,UrdiduraDeTempo,Colecao]);
+    ex(TesouroEscondido, [TeleporteOutro,Polimorfo,Esgotar,UrdiduraDeTempo,Colecao,RaioCourto]);
+    ex(OPilar, [Colecao]);
+    ex(Dourado, [UrdiduraDeTempo,Colecao]);
+    ex(Penetracao, [Poupanca,Dourado]);
+    ex(RaioCourto, [OPilar,Reflexao]);
+    ex(Instante, [Adicional]);
+    ex(Identificar, [Esquecer]);
+    ex(Caro, [Ataque,Senha,CoquetelDeCamarao,MorteDeLargarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,Esgotar,OEspelho,OPilar,OTerremoto]);
+    ex(OTerremoto, [Esgotar,OEspelho]);
+
+    mutex(Ataque, [Mascara]);
+    mutex(Mascara, [Ataque]);
+    mutex(Acabar, [OEspelho]);
+    mutex(Golias, [Esgotar]);
+    mutex(ImparEPar, [RaioCourto]);
+    mutex(AlvoPreciso, [RaioCourto]);
+    mutex(CamaraoNovo, [Teleporte]);
+    mutex(AEnergia, [Duplicar,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
+    mutex(Teleporte, [CamaraoNovo]);
+    mutex(TeleporteOutro, [UrdiduraDeTempo]);
+    mutex(Polimorfo, [Caro]);
+    mutex(Duplicar, [AEnergia,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
+    mutex(Esgotar, [Golias,RaioCourto]);
+    mutex(UrdiduraDeTempo, [TeleporteOutro]);
+    mutex(OEspelho, [Acabar]);
+    mutex(TesouroPerdido, [AEnergia,Duplicar,TesouroEscondido,OPilar,Dourado]);
+    mutex(TesouroEscondido, [AEnergia,Duplicar,TesouroPerdido,OPilar,Dourado]);
+    mutex(OPilar, [AEnergia,Duplicar,TesouroPerdido,TesouroEscondido,Dourado]);
+    mutex(Dourado, [AEnergia,Duplicar,TesouroPerdido,TesouroEscondido,OPilar]);
+    mutex(Penetracao, [Reflexao]);
+    mutex(Envolver, [Reflexao]);
+    mutex(Reflexao, [Penetracao,Envolver]);
+    mutex(RaioCourto, [ImparEPar,AlvoPreciso,Esgotar]);
+    mutex(Caro, [Polimorfo]);
+  }
+}
+
+// set max number
+Ataque.max = 3;
+Identificar.max = 1;
+OsEspinhos.max = 1;
+ASaida.max = 1;
+OTerremoto.max = 1;
+Esquecer.max = 1;
+Esgotar.max = 1;
+MorteDeGalo.max = 1;
+UrdiduraDeTempo.max = 1;
+Senha.max = 1;
+Duplicar.max = 1;
+Caro.max = 1;
 
 var CLEAN = 0; // +TINT = SEL
 var MARK  = 1; // +TINT = MARK_PART
@@ -640,5 +785,15 @@ document.getElementById('resetButton').onclick = function() {
   }
 };
 
-</script></body></html>
+function forceReset() {
+  timelines = [[], [], [], [], []];
+  sel = null;
+  state = newState(false);
+  recalc();
+}
 
+if (window.location.href.indexOf("jogo=") != -1) {
+  setJogoRules(Number(window.location.href.split("jogo=")[1]));
+} else setJogoRules(5);
+
+</script></body></html>
