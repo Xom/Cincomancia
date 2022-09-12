@@ -244,7 +244,7 @@ function setJogoRules(jogo) {
     mutex(Teleporte, [CamaraoNovo,Esgotar]);
     mutex(TeleporteOutro, [Esgotar,UrdiduraDoTempo]);
     mutex(Dormir, [Esgotar]);
-    mutex(Polimorfo, [Esgotar,Caro]);
+    mutex(Polimorfo, [Esgotar]);
     mutex(Duplicar, [Golias,AEnergia,Esgotar,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
     mutex(Esgotar, [Ataque,OFogo,Detritos,Explosao,Senha,CoquetelDeCamarao,Mascara,MorteDeLagarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,CamaraoNovo,CurarDaTerra,BracoDireitoForte,AEnergia,RaizEsquerda,Teleporte,TeleporteOutro,Dormir,Polimorfo,Duplicar,OToxico,UrdiduraDoTempo,OEspelho,Adicional,Construir,Demolicao,ASaida,OsEspinhos,Poupanca,Colecao,TesouroPerdido,TesouroEscondido,OPilar,Dourado,Penetracao,Envolver,Reflexao,RaioCurto,Instante,Proteger,Identificar,Esquecer,Caro,OTerremoto]);
     mutex(OToxico, [Esgotar]);
@@ -269,7 +269,7 @@ function setJogoRules(jogo) {
     mutex(Proteger, [Esgotar]);
     mutex(Identificar, [Esgotar]);
     mutex(Esquecer, [Esgotar]);
-    mutex(Caro, [Polimorfo,Esgotar]);
+    mutex(Caro, [Esgotar]);
     mutex(OTerremoto, [Esgotar]);
     
     cellClicked(0, 27, 0);
@@ -326,7 +326,6 @@ function setJogoRules(jogo) {
     mutex(AEnergia, [Duplicar,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
     mutex(Teleporte, [CamaraoNovo]);
     mutex(TeleporteOutro, [UrdiduraDoTempo]);
-    mutex(Polimorfo, [Caro]);
     mutex(Duplicar, [AEnergia,TesouroPerdido,TesouroEscondido,OPilar,Dourado]);
     mutex(Esgotar, [Golias,RaioCurto]);
     mutex(UrdiduraDoTempo, [TeleporteOutro]);
@@ -339,7 +338,6 @@ function setJogoRules(jogo) {
     mutex(Envolver, [Reflexao]);
     mutex(Reflexao, [Penetracao,Envolver]);
     mutex(RaioCurto, [ImparEPar,AlvoPreciso,Esgotar]);
-    mutex(Caro, [Polimorfo]);
   }
 }
 
