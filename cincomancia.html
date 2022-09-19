@@ -167,21 +167,6 @@ var DEBUFF = [Esgotar, Dormir, OToxico];
 var CONTROL = [Caro, DEBUFF, Duplicar, Polimorfo, WARP];
 
 function setJogoRules(jogo) {
-  ban = [];
-
-  for (var i = 0; i < 50; i++) {
-    var x = FX[i];
-    window[x.name.replace(/ \S/g, function(s){return s.charAt(1).toUpperCase();})] = x;
-    x.id = i;
-    x.x = i % 5;
-    x.y = Math.floor(i / 5);
-    x.max = 2;
-    ban.push([]);
-    for (var j = 0; j < 50; j++) {
-      ban[i].push(i === j);
-    }
-  }
-  
   if (jogo < 5) {
     ex(Ataque, [CoquetelDeCamarao,MorteDeLagarto,MorteDeSapo,MorteDeGalo,Acabar,Golias,ImparEPar,AlvoPreciso,Sangue,OEspelho]);
     ex(OFogo, [TeleporteOutro,UrdiduraDoTempo]);
